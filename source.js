@@ -1,12 +1,5 @@
 var frog;
-const KEY_W=87;
-const KEY_S=83;
-const KEY_A=65;
-const KEY_D=68;
-const KEY_SHIFT=16;
-const KEY_SPACE=32;
 var lilypads = [];
-var lilyColor = [];
 
 function setup(){
 	createCanvas(600,600);
@@ -14,9 +7,10 @@ function setup(){
 	frog = new Frog();
 	col1 = color(135, 208, 230);
 	col2 = color(230, 244, 255);
+	lilypads.push(new Lilypad(300, 300, 2));
 	lilypads.push(new Lilypad(200, 200, 0.5));
 	lilypads.push(new Lilypad(100, 80, 0.7, PI/4));
-	console.log(lilypads);
+	frog.lily = lilypads[0];
 }
 
 function draw(){
@@ -45,27 +39,26 @@ function Lilypad(x, y, sc, rot){
 	this.x=x;
 	this.y=y;
 	this.sc=sc;
-	this.rot=rot;
+	this.rot=rot?rot:0;
 	this.draw = function(){
 		push();
-		translate(x,y);
-		scale(sc);
-		rotate(rot);
+		translate(this.x,this.y);
+		scale(this.sc);
+		rotate(this.rot);
 		fill(85, 181, 101, 75);
 		noStroke();
-		translate(200, 200);
 		beginShape();
-		curveVertex(-88,-66);
-		curveVertex(-25,-90);
-		curveVertex(40,-54);
-		curveVertex(-11,-24);
-		curveVertex(40,3);
-		curveVertex(-4,37);
-		curveVertex(-53,34);
-		curveVertex(-99,-4);
-		curveVertex(-88,-66);
-		curveVertex(-25,-90);
-		curveVertex(40,-54);
+		curveVertex(-58,-41);
+		curveVertex(5,-65);
+		curveVertex(70,-29);
+		curveVertex(19,1);
+		curveVertex(70,28);
+		curveVertex(26,62);
+		curveVertex(-23,59);
+		curveVertex(-69,21);
+		curveVertex(-58,-41);
+		curveVertex(5,-65);
+		curveVertex(70,-29);
 		endShape();
 		pop();
 	}
@@ -84,6 +77,7 @@ function Frog(){
 	this.jumpStartY;
 	this.jumpX;
 	this.jumpY;
+	this.lily;
 	this.draw = function(){
 		fill(0,200,0);
 		stroke(100);
@@ -100,10 +94,10 @@ function Frog(){
 		if(this.jumping<=0){
 			var dx=0;
 			var dy=0;
-			if(keyIsDown(KEY_W)){dy-=1;}
-			if(keyIsDown(KEY_S)){dy+=1;}
-			if(keyIsDown(KEY_A)){dx-=1;}
-			if(keyIsDown(KEY_D)){dx+=1;}
+			if(keyIsDown(87)){dy-=1;}//W
+			if(keyIsDown(83)){dy+=1;}//S
+			if(keyIsDown(65)){dx-=1;}//A
+			if(keyIsDown(68)){dx+=1;}//D
 			if(abs(dx)==abs(dy)){
 				dx/=sqrt(2);
 				dy/=sqrt(2);
@@ -114,7 +108,13 @@ function Frog(){
 			this.vy*=0.85;
 			this.x += this.vx;
 			this.y += this.vy;
-			if(keyIsDown(KEY_SHIFT) || keyIsDown(KEY_SPACE)){
+			if(!this.isOnPad(this.lily)){
+				var theta = atan2(this.y-this.lily.y,this.x-this.lily.x);
+				this.x=this.lily.x+cos(theta)*this.lily.sc*60;
+				this.y=this.lily.y+sin(theta)*this.lily.sc*60;
+
+			}
+			if(keyIsDown(16) || keyIsDown(32)){//Shift || Space
 				this.jumping=this.jumpLength;
 				this.jumpX=mouseX-this.x;
 				this.jumpY=mouseY-this.y;
@@ -127,6 +127,19 @@ function Frog(){
 			this.x = this.jumpStartX+p*this.jumpX;
 			this.y = this.jumpStartY+p*this.jumpY;
 			this.size = 1+sin(p*PI);
+			if(p>=1){
+				for(var i=0;i<lilypads.length;i++){
+					if(this.isOnPad(lilypads[i])){
+						this.lily = lilypads[i];
+						return;
+					}
+				}
+				//die();
+				//You want the frog to die here because it did not land on a lilypad.
+			}
 		}
+	}
+	this.isOnPad = function(lily){
+		return(sq(this.x-lily.x)+sq(this.y-lily.y) < sq(lily.sc*60));
 	}
 }

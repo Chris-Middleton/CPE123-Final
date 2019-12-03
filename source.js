@@ -1,10 +1,13 @@
 //Left click jump, right click tongue
 var frog;
 var lilypads = [];
+var bg='#085E99';
+
+//the following line should be uncommented if running on a server, and commented if running locally.
+//function preload(){bg=loadImage('water2.jpg');}
 
 function setup(){
 	createCanvas(600,600);
-	background(0,0,200);
 	col1 = color(135, 208, 230);
 	col2 = color(230, 244, 255);
 	lilypads.push(new Lilypad(width/2, height/2, 1));
@@ -27,8 +30,7 @@ function setup(){
 }
 
 function draw(){
-	background('#085E99');
-	//setGradient(0, 0, width, height, col1, col2, 1);
+	background(bg)
 	for(var lilypad of lilypads){
 		lilypad.update();
 		lilypad.draw();
@@ -53,7 +55,34 @@ function bounceLilypads(){
 	}
 }
 
-
+function Fly(x,y){
+	this.x=x;
+	this.y=y;
+	this.vel=3;
+	this.dir=random(0,TAU);
+	this.draw=function(){
+		fill(0);
+		noStroke();
+		ellipse(this.x,this.y,5);
+	}
+	this.update=function(){
+		this.dir+=0.3*random(-1,1);
+		this.x+=this.vel*cos(this.dir);
+		this.y+=this.vel*sin(this.dir);
+		while(this.x>width){
+			this.x-=width;
+		}
+		while(this.x<0){
+			this.x+=width;
+		}
+		while(this.y>height){
+			this.y-=height;
+		}
+		while(this.y<0){
+			this.y+=height;
+		}
+	}
+}
 
 function Lilypad(x, y, sc, rot){
 	//true radius = 65*sc
@@ -103,7 +132,7 @@ function Lilypad(x, y, sc, rot){
 		translate(this.x,this.y);
 		scale(this.sc);
 		rotate(this.rot);
-		fill(85, 181, 101, 190);
+		fill(85, 181, 101, 230);
 		noStroke();
 		beginShape();
 		curveVertex(-58,-41);

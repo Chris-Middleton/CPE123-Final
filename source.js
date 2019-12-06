@@ -1,15 +1,27 @@
 //Left click jump, right click tongue
 var frog;
-var lilypads = [];
+var lilypads;
+var flies;
+var lives;
+var score;
+var startTimer;
+var unready=true;
+var gameOver;
 var bg='#085E99';
+var numFlies;
 
 //the following line should be uncommented if running on a server, and commented if running locally.
 //function preload(){bg=loadImage('water2.jpg');}
 
 function setup(){
 	createCanvas(600,600);
-	col1 = color(135, 208, 230);
-	col2 = color(230, 244, 255);
+	lilypads = [];
+	flies=[];
+	lives=3;
+	score=0;
+	startTimer=3;
+	numFlies=4;
+	gameOver=false;
 	lilypads.push(new Lilypad(width/2, height/2, 1));
 	var i=5;
 	while(i>1){
@@ -26,18 +38,86 @@ function setup(){
 			i--;
 		}
 	}
+	resetFlies();
 	frog = new Frog(lilypads[0]);
 }
-
 function draw(){
 	background(bg)
-	for(var lilypad of lilypads){
-		lilypad.update();
-		lilypad.draw();
+	if(unready){
+		fill(0,255,0);
+		stroke(100);
+		strokeWeight(5);
+		textSize(100);
+		textAlign(CENTER,CENTER);
+		text("Frog Game!",width/2,height/2);
+		strokeWeight(3);
+		textSize(30);
+		textAlign(CENTER,BOTTOM);
+		text("(click to start)",width/2,height);
+		if(mouseIsPressed){
+			unready=false;
+		}
+		return;
 	}
-	frog.update();
-	frog.draw();
-	bounceLilypads();
+	if(startTimer>0){
+		startTimer-=1/60;
+		for(var lilypad of lilypads){
+			lilypad.draw();
+		}
+		for(var fly of flies){
+			fly.draw();
+		}
+		frog.draw();
+		fill(0,255,0);
+		stroke(100);
+		strokeWeight(5);
+		textSize(100);
+		textAlign(CENTER,CENTER);
+		text(ceil(startTimer),width/2,height/2);
+	}else{
+		for(var lilypad of lilypads){
+			lilypad.update();
+			lilypad.draw();
+		}
+		for(var fly of flies){
+			fly.update();
+			fly.draw();
+		}
+		bounceLilypads();
+		if(frog.update() || frogFlyCollision()){
+			loseLife();
+		}else{
+			frog.draw();
+		}
+	}
+	fill(0,255,0);
+	stroke(100);
+	strokeWeight(3);
+	textSize(30);
+	textAlign(LEFT,TOP);
+	text('Lives: '+lives,0,0);
+	textAlign(RIGHT,TOP);
+	text('Score: '+score,width,0);
+}
+function resetFlies(){
+	flies=[];
+	for(var i=0;i<numFlies;i++){
+		if(floor(random(2))==0){
+			flies.push(new Fly(random(0,width),floor(random(2))*height));
+		}else{
+			flies.push(new Fly(floor(random(2))*width,random(0,height)));
+		}
+	}
+}
+function frogFlyCollision(){
+	if(frog.jumping==0){
+		fill(0,0,0,100);
+		for(var fly of flies){
+			if(sq(fly.x-frog.x)+sq(fly.y-frog.y)-sq(22)<0){
+				return true;
+			}
+		}
+	}
 }
 
 function bounceLilypads(){
@@ -54,7 +134,47 @@ function bounceLilypads(){
 		}
 	}
 }
-
+function mousePressed(){
+	if(gameOver){
+		setup();
+		loop();
+	}else if(startTimer<=0){
+		frog.launchTongue();
+	}
+}
+function loseLife(){
+	lives-=1;
+	frog.tongue=0;
+	if(lives==0){
+		fill(0,255,0);
+		stroke(100);
+		strokeWeight(5);
+		textSize(100);
+		textAlign(CENTER,CENTER);
+		text("Game Over!",width/2,height/2);
+		strokeWeight(3);
+		textSize(30);
+		textAlign(CENTER,BOTTOM);
+		text("(click to play again)",width/2,height);
+		gameOver=true;
+		noLoop();
+	}else{
+		frog.lily=lilypads[0];
+		frog.x=frog.lily.x;
+		frog.y=frog.lily.y;
+		frog.vx=0;
+		frog.vy=0;
+		resetFlies();
+		startTimer=3;
+	}
+}
+function nextStage(){
+	resetFlies();
+	startTimer=3;
+	frog.tongue=0;
+	numFlies+=2;
+	score+=500;
+}
 function Fly(x,y){
 	this.x=x;
 	this.y=y;
@@ -165,6 +285,7 @@ function Frog(lily){
 	this.jumpX;
 	this.jumpY;
 	this.lily=lily;
+	this.tongue=0;
 	this.draw = function(){
 		fill(0,200,0);
 		stroke(100);
@@ -172,6 +293,9 @@ function Frog(lily){
 		translate(this.x,this.y)
 		scale(this.size*0.4)
 		rotate(this.rotation);
+		strokeWeight(10);
+		stroke('#E79EA9');
+		line(0,0,0,-this.tongue);
 		drawFrog(this.jumping,sqrt(sq(this.vx)+sq(this.vy))*sin(millis()/100));
 		pop();
 	}
@@ -199,7 +323,6 @@ function Frog(lily){
 				var theta = atan2(this.y-this.lily.y,this.x-this.lily.x);
 				this.x=this.lily.x+cos(theta)*this.lily.sc*65;
 				this.y=this.lily.y+sin(theta)*this.lily.sc*65;
-
 			}
 			if(keyIsDown(16) || keyIsDown(32)){//Shift || Space
 				this.jumping=this.jumpLength;
@@ -208,7 +331,9 @@ function Frog(lily){
 				this.jumpStartX = this.x;
 				this.jumpStartY = this.y;
 			}
+			this.tongue*=0.9;
 		}else{
+			this.tongue=0;
 			this.jumping-=1;
 			var p = 1-(this.jumping/this.jumpLength);
 			this.x = this.jumpStartX+p*this.jumpX;
@@ -218,11 +343,25 @@ function Frog(lily){
 				for(var i=0;i<lilypads.length;i++){
 					if(this.isOnPad(lilypads[i])){
 						this.lily = lilypads[i];
-						return;
+						return false;
 					}
 				}
-				//die();
-				//You want the frog to die here because it did not land on a lilypad.
+				return true;
+			}
+		}
+		return false;
+	}
+	this.launchTongue = function(){
+		if(this.tongue<100 && this.jumping==0){
+			this.tongue=sqrt(sq(mouseX-this.x)+sq(mouseY-this.y))/(this.size*0.4)/0.9;
+			for(var i=flies.length-1;i>=0;i--){
+				if(sq(flies[i].x-mouseX)+sq(flies[i].y-mouseY)<400){
+					flies.splice(i,1);
+					score+=100;
+				}
+			}
+			if(flies.length==0){
+				nextStage();
 			}
 		}
 	}
